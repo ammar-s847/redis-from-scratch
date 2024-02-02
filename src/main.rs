@@ -1,57 +1,63 @@
 use std::{
+    thread,
     io::{Read, Write},
     net::{TcpListener, TcpStream},
-    collections::{Hashmap, BinaryHeap},
+    collections::{HashMap},
 };
 
-use create::thread_pool::ThreadPool;
-
-pub fn handle_client(mut stream: TcpStream) -> std::io::Result<()> {
-    let mut buffer: [u8; 1024] = [0; 1024];
-
-    stream.read(&mut buffer).expect("Failed to read request");
-
-    let request = String::from_utf8_lossy(&buffer[..]);
-    println!("Received request: {}", request);
-
-    match request.trim() {
-        "set" => {
-
-            let response = "Set request received";
-            stream.write(response.as_bytes())?;
-        },
-        "get" => {
+pub fn handle_client(mut stream: TcpStream) {
+    loop {
+        let mut buffer: [u8; 1024] = [0; 1024];
+        match stream.read(&mut buffer) {
+            Ok(n) => {
+                if n == 0 {
+                    break;
+                }
+                match String::from_utf8_lossy(&buffer[0..n]).trim() {
+                    "set" => {
             
-            let response = "Get request received";
-            stream.write(response.as_bytes())?;
-        },
-        _ => {
-            let response = "Invalid request type";
-            stream.write(response.as_bytes())?;
-        },
-    };
-    Ok(())
+                        let response = "Set request received";
+                        stream.write(response.as_bytes()).unwrap();
+                    },
+                    "get" => {
+                        
+                        let response = "Get request received";
+                        stream.write(response.as_bytes()).unwrap();
+                    },
+                    "del" => {
+                        
+                        let response = "Delete request received";
+                        stream.write(response.as_bytes()).unwrap();
+                    },
+                    _ => {
+                        let response = "Invalid request type";
+                        stream.write(response.as_bytes()).unwrap();
+                    },
+                };
+                // println!("{}", String::from_utf8_lossy(&buffer[0..n]));
+                // stream.write(&buffer[0..n]).unwrap();
+            },
+            Err(e) => {
+                eprintln!("Failed to read request -> error: {}", e);
+                break;
+            }
+        }
+    }
 }
 
-fn main() -> std::io::Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:7878")?;
+fn main() {
+    println!("Starting Rust Redis");
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-    // accept connections and process them serially
     for stream in listener.incoming() {
-        let _ = handle_client(stream?);
+        match stream {
+            Ok(stream) => {
+                println!("Connection established");
+                thread::spawn(move || handle_client(stream));
+            }
+            Err(e) => {
+                eprintln!("Failed to establish connection -> error: {}", e)
+            }
+        }
     }
-    Ok(())
-
-    // for stream in listener.incoming() {
-    //     match stream {
-    //         Ok(stream) => {
-    //             println!("Connection established");
-    //             std::thread::spawn(|| handle_tcp_client(stream));
-    //         }
-    //         Err(e) => {
-    //             eprintln!("Failed to establish connection -> error: {}", e)
-    //         }
-    //     }
-    //     // let stream = stream.unwrap();
-    // }
 }
