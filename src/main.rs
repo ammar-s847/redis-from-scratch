@@ -103,14 +103,21 @@ pub fn handle_client(mut stream: TcpStream) {
                         match String::from_utf8_lossy(&buffer[1..n])
                         .trim() {
                             key => {
-                                let response = format!(
-                                    "Del request received -> key: {}", 
-                                    key
-                                );
-                                stream.write(response.as_bytes()).unwrap();
+                                match do_del(key) {
+                                    Ok(_) => {
+                                        let response = format!(
+                                            "Delete request succesful -> key: {}", 
+                                            key
+                                        );
+                                        stream.write(response.as_bytes()).unwrap();
+                                    },
+                                    Err(e) => {
+                                        eprintln!("Failed to delete key -> error: {}", e);
+                                    }
+                                }
                             },
                             _ => {
-                                let response = "Invalid del request";
+                                let response = "Invalid delete request";
                                 stream.write(response.as_bytes()).unwrap();
                             }
                         }
@@ -129,13 +136,11 @@ pub fn handle_client(mut stream: TcpStream) {
     }
 }
 
-fn do_set(key: &str, value: &str) -> Result<(), &'static str> {
-    
+fn do_set(key: &str, value: &str, storage: Storage) -> Result<(), &'static str> {
     Ok(())
 }
 
 fn do_get(key: &str) -> Result<(), &'static str> {
-
     Ok(())
 }
 
